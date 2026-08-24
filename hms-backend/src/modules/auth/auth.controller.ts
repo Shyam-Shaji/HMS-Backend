@@ -57,5 +57,5 @@ export class AuthController {
     logout(@CurrentUser() user: AuthenticatedUser){
         return this.authService.logout(user.userId);
     }
-
+    
 }
