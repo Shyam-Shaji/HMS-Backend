@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    container_name: hms-backend
+    ports:
+      - "4000:4000"
+    env_file: .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hms
+    depends_on:
+      - mongo
+      - redis
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: hms-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hms-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
