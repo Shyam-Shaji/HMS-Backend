@@ -8,6 +8,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { HospitalsModule } from './modules/hospitals/hospitals.module';
+import { PatientsModule } from './modules/patients/patients.module';
+import { CounterModule } from './common/counter/counter.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { HospitalsModule } from './modules/hospitals/hospitals.module';
     HealthModule,
     AuditLogModule,
     HospitalsModule,
+    PatientsModule,
+    CounterModule,
   ],
   controllers: [AppController],
   providers: [AppService],
