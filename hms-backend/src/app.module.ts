@@ -10,6 +10,8 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { HospitalsModule } from './modules/hospitals/hospitals.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { CounterModule } from './common/counter/counter.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { DoctorsModule } from './modules/doctors/doctors.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { CounterModule } from './common/counter/counter.module';
     HospitalsModule,
     PatientsModule,
     CounterModule,
+    AppointmentsModule,
+    DoctorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
