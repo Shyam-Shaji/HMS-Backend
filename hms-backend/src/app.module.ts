@@ -12,6 +12,8 @@ import { PatientsModule } from './modules/patients/patients.module';
 import { CounterModule } from './common/counter/counter.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { DoctorsModule } from './modules/doctors/doctors.module';
+import { EmrModule } from './modules/emr/emr.module';
+import { PrescriptionsModule } from './modules/prescriptions/prescriptions.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { DoctorsModule } from './modules/doctors/doctors.module';
     CounterModule,
     AppointmentsModule,
     DoctorsModule,
+    EmrModule,
+    PrescriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
