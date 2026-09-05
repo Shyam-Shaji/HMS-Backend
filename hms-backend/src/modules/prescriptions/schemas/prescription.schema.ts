@@ -1,24 +1,43 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Types } from "mongoose";
-import { applyTenantPlugin } from "../../../common/plugins/tenant.plugin";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { randomUUID } from 'crypto';
+import { applyTenantPlugin } from '../../../common/plugins/tenant.plugin';
 
 export type PrescriptionDocument = Prescription & Document;
 
 export enum PrescriptionStatus {
   ACTIVE = 'active',
   CANCELLED = 'cancelled',
-  // "dispensed" is set by the future Pharmacy module once it exists -
-  // left out of this enum for now rather than half-implementing a status
-  // this module can't actually transition into yet.
+}
+
+export enum DispenseStatus {
+  NOT_DISPENSED = 'not_dispensed',
+  PARTIALLY_DISPENSED = 'partially_dispensed',
+  FULLY_DISPENSED = 'fully_dispensed',
 }
 
 @Schema({ _id: false })
 class PrescribedMedicine {
+  // Stable identifier for this line, independent of Mongo's subdocument
+  // _id (disabled at the schema level below) - the Pharmacy module
+  // references a specific line by this id when recording a dispense, so
+  // atomic array-element updates (arrayFilters) have something reliable
+  // to match on even though the line describes a free-text drug name, not
+  // a catalog reference.
+  @Prop({ default: () => randomUUID() })
+  lineId: string;
+
   @Prop({ required: true }) name: string;
   @Prop({ required: true }) dosage: string; // e.g. "500mg"
   @Prop({ required: true }) frequency: string; // e.g. "1-0-1" or "twice daily"
   @Prop({ required: true }) duration: string; // e.g. "5 days"
   @Prop() instructions?: string; // e.g. "after food"
+
+  // Total units the doctor intends the patient to receive (optional -
+  // some doctors just write dosage/frequency/duration and let the
+  // pharmacist work out quantity). Pharmacy dispenses against this.
+  @Prop() quantity?: number;
+  @Prop({ default: 0 }) quantityDispensed: number;
 }
 const PrescribedMedicineSchema = SchemaFactory.createForClass(PrescribedMedicine);
 
@@ -54,6 +73,12 @@ export class Prescription {
 
   @Prop()
   cancelReason?: string;
+
+  // Rolled up by PharmacyService after every dispense event - lets the
+  // pharmacy queue screen filter to "still needs dispensing" without
+  // inspecting every line of every prescription.
+  @Prop({ required: true, enum: DispenseStatus, default: DispenseStatus.NOT_DISPENSED, index: true })
+  dispenseStatus: DispenseStatus;
 }
 
 export const PrescriptionSchema = SchemaFactory.createForClass(Prescription);

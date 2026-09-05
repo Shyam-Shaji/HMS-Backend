@@ -17,6 +17,7 @@ import { PrescriptionsModule } from './modules/prescriptions/prescriptions.modul
 import { AdmissionsModule } from './modules/admissions/admissions.module';
 import { WardsModule } from './modules/wards/wards.module';
 import { WardsController } from './modules/wards/wards.controller';
+import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { WardsController } from './modules/wards/wards.controller';
     PrescriptionsModule,
     AdmissionsModule,
     WardsModule,
+    PharmacyModule,
   ],
   controllers: [AppController, WardsController],
   providers: [AppService],
