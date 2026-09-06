@@ -18,6 +18,7 @@ import { AdmissionsModule } from './modules/admissions/admissions.module';
 import { WardsModule } from './modules/wards/wards.module';
 import { WardsController } from './modules/wards/wards.controller';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
+import { LabModule } from './modules/lab/lab.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
     AdmissionsModule,
     WardsModule,
     PharmacyModule,
+    LabModule,
   ],
   controllers: [AppController, WardsController],
   providers: [AppService],
