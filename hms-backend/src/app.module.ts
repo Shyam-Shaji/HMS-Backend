@@ -19,6 +19,7 @@ import { WardsModule } from './modules/wards/wards.module';
 import { WardsController } from './modules/wards/wards.controller';
 import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 import { LabModule } from './modules/lab/lab.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { LabModule } from './modules/lab/lab.module';
     WardsModule,
     PharmacyModule,
     LabModule,
+    BillingModule,
   ],
   controllers: [AppController, WardsController],
   providers: [AppService],

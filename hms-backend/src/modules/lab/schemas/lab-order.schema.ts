@@ -71,6 +71,12 @@ export class LabOrder {
   @Prop({ required: true })
   testNameSnapshot: string;
 
+  // Price at the time of ordering - the Billing module reads this rather
+  // than the live TestCatalog price, so a later price change doesn't
+  // retroactively alter what an already-ordered test is billed at.
+  @Prop({ default: 0 })
+  priceSnapshot: number;
+
   @Prop({ required: true, enum: LabOrderPriority, default: LabOrderPriority.ROUTINE })
   priority: LabOrderPriority;
 
