@@ -13,10 +13,18 @@ import {
     timeToMinutes,
 } from '../../common/utils/date.util';
 import { Appointment, AppointmentDocument, AppointmentStatus } from '../appointments/schemas/appointment.schema';
+import { User, UserDocument } from '../user/schemas/user.schema';
+import { Role } from 'src/common/enums/role.enums';
 
 export interface SlotResult {
     time: string;
     available: boolean;
+}
+
+export interface DoctorDirectoryQuery {
+  hospitalId: string;
+  department?: string;
+  q?: string;
 }
 
 @Injectable()
@@ -25,8 +33,21 @@ export class DoctorsService {
         @InjectModel(DoctorAvailability.name) private availabilityModel: Model<DoctorAvailabilityDocument>,
         @InjectModel(DoctorLeave.name) private leaveModel: Model<DoctorLeaveDocument>,
         @InjectModel(Appointment.name) private appointmentModel: Model<AppointmentDocument>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
     ) {}
 
+    // The "search doctors by department/hospital" read patients need before
+    // they can book anything - there was previously no way to discover a
+    // doctor at all. hospitalId is required explicitly (not read from
+    // context) because a patient's own JWT carries hospitalId: null - they
+    // browse across hospitals, not within one fixed tenant.
+    listDirectory(query: DoctorDirectoryQuery){
+        const filter:any = {hospitalId: query.hospitalId, role: Role.DOCTOR, isActive: true};
+        if(query.department) filter.department = new RegExp(query.department, 'i');
+        if(query.q) filter.name = new RegExp(query.q, 'i');
+        return this.userModel.find(filter).select('name department');
+    }
+    
     async setAvailability(doctorId: string, dto: SetAvailabilityDto){
         await this.availabilityModel.deleteMany({ doctorId});
         const docs = dto.blocks.map((b)=> ({...b, doctorId}));

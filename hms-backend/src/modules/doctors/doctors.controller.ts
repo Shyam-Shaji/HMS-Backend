@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DoctorsService } from './doctors.service';
 import { SetAvailabilityDto } from './dto/set-availability.dto';
 import { CreateLeaveDto } from './dto/create-leave.dto';
+import { SearchDoctorsDto } from './dto/search-doctors.dto';
 import { Role } from '../../common/enums/role.enums';
 import { Roles } from '../../common/decorators/role.decorator';
 import { RolesGuard } from '../../common/guards/roles.guards';
@@ -23,6 +24,14 @@ function assertSelfOrAdmin(currentUser: AuthenticatedUser, doctorId: string) {
 @Controller('doctors')
 export class DoctorsController {
     constructor(private readonly doctorsService: DoctorsService) {}
+
+    // Doctor directory - the "search doctors by department" read a patient
+    // needs before booking. No @Roles restriction, same as availability/
+    // leave/slots below: any authenticated role can browse.
+    @Get()
+    listDirectory(@Query() query: SearchDoctorsDto) {
+    return this.doctorsService.listDirectory(query);
+    }
 
     @Post(':doctorId/availability')
     @Roles(Role.DOCTOR, Role.HOSPITAL_ADMIN)

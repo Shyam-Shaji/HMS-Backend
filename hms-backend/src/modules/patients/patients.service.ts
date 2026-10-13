@@ -8,6 +8,7 @@ import { SearchPatientDto } from './dto/search-patient.dto';
 import { CounterService } from '../../common/counter/counter.service';
 import { getCurrentHospitalId } from '../../common/context/tenant-context';
 import { UpdateMyPatientDto } from './dto/update-my-patient.dto';
+import { SelfRegisterPatientDto } from './dto/self-register-patient.dto';
 
 @Injectable()
 export class PatientsService {
@@ -36,6 +37,25 @@ export class PatientsService {
         }
 
         return this.patientModel.create({...dto,uhid});
+    }
+
+    // For a patient registering themselves at a hospital they've chosen
+    // (e.g. before their first booking there) - distinct from create()
+    // because a patient's own JWT always carries hospitalId: null, so there
+    // is no tenant context to read it from. hospitalId is taken from the
+    // request body instead and included directly in the document, which
+    // satisfies the tenant plugin's pre-save hook (it only fills hospitalId
+    // in when the document doesn't already have one - see tenant.plugin.ts).
+    async selfRegister(dto: SelfRegisterPatientDto, userId: string): Promise<PatientDocument> {
+    const existing = await this.patientModel.findOne({ userId, hospitalId: dto.hospitalId });
+    if (existing) {
+      throw new BadRequestException('You already have a patient record at this hospital');
+    }
+
+    const seq = await this.counterService.next(`uhid:${dto.hospitalId}`);
+    const uhid = `PT${new Date().getFullYear()}${String(seq).padStart(6, '0')}`;
+
+    return this.patientModel.create({ ...dto, uhid, userId, hospitalId: dto.hospitalId });
     }
 
     async search(query: SearchPatientDto) {
