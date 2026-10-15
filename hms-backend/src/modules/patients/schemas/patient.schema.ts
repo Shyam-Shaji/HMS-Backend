@@ -65,7 +65,7 @@ export class Patient {
   uhid: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
-  userId: Types.ObjectId | null;
+  userId!: Types.ObjectId | null;
 
   // Added by applyTenantPlugin at runtime.
   declare hospitalId: Types.ObjectId;

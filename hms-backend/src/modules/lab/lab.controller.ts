@@ -22,11 +22,11 @@ const LAB_MANAGE_ROLES = [Role.LAB_TECHNICIAN, Role.HOSPITAL_ADMIN];
 @UseGuards(RolesGuard)
 @Controller()
 export class LabController {
-    constructor(private readonly labService: LabService) {}
+  constructor(private readonly labService: LabService) {}
 
-    // ---- Test catalogue ----
+  // ---- Test catalogue ----
 
-    @Post('lab/tests')
+  @Post('lab/tests')
   @Roles(...LAB_MANAGE_ROLES)
   createTest(@Body() dto: CreateTestCatalogDto) {
     return this.labService.createTest(dto);

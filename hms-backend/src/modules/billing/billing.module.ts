@@ -13,6 +13,7 @@ import { CounterModule } from '../../common/counter/counter.module';
 import { AppointmentsModule } from '../appointments/appointments.module';
 import { AdmissionsModule } from '../admissions/admissions.module';
 import { LabModule } from '../lab/lab.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { LabModule } from '../lab/lab.module';
     AppointmentsModule,
     AdmissionsModule,
     LabModule,
+    NotificationsModule,
   ],
   controllers: [BillingController],
   providers: [BillingService, PaymentGatewayService],

@@ -5,7 +5,6 @@ export type RefreshTokenDocument = RefreshToken & Document;
 
 // Stored so refresh tokens can be revoked (logout, password change,
 // suspected compromised) instead of trusting a stateless JWT until expiry.
-
 @Schema({timestamps: true})
 export class RefreshToken{
     @Prop({type: Types.ObjectId, ref: 'User', required: true, index: true})

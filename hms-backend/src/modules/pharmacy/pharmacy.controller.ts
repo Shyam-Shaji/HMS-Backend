@@ -22,17 +22,17 @@ const PHARMACY_READ_ROLES = [Role.PHARMACIST, Role.HOSPITAL_ADMIN, Role.DOCTOR, 
 @UseGuards(RolesGuard)
 @Controller('pharmacy')
 export class PharmacyController {
-    constructor(private readonly pharmacyService: PharmacyService) {}
+  constructor(private readonly pharmacyService: PharmacyService) {}
 
-    // ---- Medicine catalog ----
+  // ---- Medicine catalog ----
 
-    @Post('medicines')
-    @Roles(...PHARMACY_MANAGE_ROLES)
-    createMedicine(@Body() dto: CreateMedicineDto) {
+  @Post('medicines')
+  @Roles(...PHARMACY_MANAGE_ROLES)
+  createMedicine(@Body() dto: CreateMedicineDto) {
     return this.pharmacyService.createMedicine(dto);
-    }
+  }
 
-    @Get('medicines')
+  @Get('medicines')
   @Roles(...PHARMACY_READ_ROLES)
   searchMedicines(@Query() query: SearchMedicineDto) {
     return this.pharmacyService.searchMedicines(query);

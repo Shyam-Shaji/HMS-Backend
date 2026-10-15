@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Medicine, MedicineDocument } from './schemas/medicine.schema';
 import { MedicineBatch, MedicineBatchDocument } from './schemas/medicine-batch.schema';
 import { Supplier, SupplierDocument } from './schemas/supplier.schema';
@@ -15,16 +15,21 @@ import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { ReceivePurchaseOrderDto } from './dto/receive-purchase-order.dto';
 import { DispensePrescriptionDto } from './dto/dispense-prescription.dto';
+import { getCurrentHospitalId } from 'src/common/context/tenant-context';
+import { containsInsensitive } from 'src/common/utils/regex.util';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 
 @Injectable()
 export class PharmacyService {
-    constructor(
+  constructor(
     @InjectModel(Medicine.name) private medicineModel: Model<MedicineDocument>,
     @InjectModel(MedicineBatch.name) private batchModel: Model<MedicineBatchDocument>,
     @InjectModel(Supplier.name) private supplierModel: Model<SupplierDocument>,
     @InjectModel(PurchaseOrder.name) private purchaseOrderModel: Model<PurchaseOrderDocument>,
     @InjectModel(DispenseRecord.name) private dispenseRecordModel: Model<DispenseRecordDocument>,
     @InjectModel(Prescription.name) private prescriptionModel: Model<PrescriptionDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ---------- Medicine catalog ----------
@@ -36,7 +41,7 @@ export class PharmacyService {
   async searchMedicines(query: SearchMedicineDto) {
     const filter: any = { isActive: true };
     if (query.q) {
-      const regex = new RegExp(query.q, 'i');
+      const regex = containsInsensitive(query.q);
       filter.$or = [{ name: regex }, { genericName: regex }];
     }
     return this.medicineModel.find(filter).sort({ name: 1 });
@@ -75,7 +80,17 @@ export class PharmacyService {
 
   // Total stock on hand per medicine <= its reorder level.
   async getLowStockMedicines() {
+    // IMPORTANT: .aggregate() does not run through Mongoose query
+    // middleware, which is how applyTenantPlugin auto-scopes everything
+    // else in this app. Without this explicit match, this would sum
+    // batch stock across EVERY hospital on the platform, not just the
+    // current one - a real cross-tenant data leak. Any future aggregate()
+    // call in a tenant-scoped collection needs the same explicit filter.
+    const hospitalId = getCurrentHospitalId();
+    const matchStage = hospitalId ? [{ $match: { hospitalId: new Types.ObjectId(hospitalId) } }] : [];
+
     const totals = await this.batchModel.aggregate([
+      ...matchStage,
       { $group: { _id: '$medicineId', totalAvailable: { $sum: '$quantityAvailable' } } },
     ]);
     const totalsMap = new Map(totals.map((t) => [t._id.toString(), t.totalAvailable]));
@@ -282,6 +297,23 @@ export class PharmacyService {
       dispensedBy,
       items: dispensedLines,
       totalAmount,
+    }).then(async (record) => {
+      if (prescription.patientUserId) {
+        const statusLabel = refreshed?.dispenseStatus === DispenseStatus.FULLY_DISPENSED
+          ? 'Your full prescription is ready for pickup.'
+          : 'Part of your prescription has been dispensed; the rest is pending.';
+        this.notificationsService
+          .send({
+            userId: prescription.patientUserId.toString(),
+            type: NotificationType.PRESCRIPTION_READY,
+            title: 'Medicines dispensed',
+            message: statusLabel,
+            relatedEntityType: 'prescription',
+            relatedEntityId: prescriptionId,
+          })
+          .catch(() => undefined);
+      }
+      return record;
     });
   }
 

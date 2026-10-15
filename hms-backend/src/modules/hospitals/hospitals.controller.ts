@@ -9,31 +9,57 @@ import { RolesGuard } from '../../common/guards/roles.guards';
 
 // Tenant management - Super Admin only. This is the "onboard a new
 // hospital" flow from the project plan (Super Admin > Onboard New Hospital).
+const ALL_ROLES = [
+  Role.SUPER_ADMIN,
+  Role.HOSPITAL_ADMIN,
+  Role.DOCTOR,
+  Role.NURSE,
+  Role.RECEPTIONIST,
+  Role.PHARMACIST,
+  Role.LAB_TECHNICIAN,
+  Role.BILLING_STAFF,
+  Role.PATIENT,
+];
+
 @ApiTags('hospitals')
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
-@Roles(Role.SUPER_ADMIN)
 @Controller('hospitals')
 export class HospitalsController {
-    constructor(private readonly hospitalsService: HospitalsService){}
+  constructor(private readonly hospitalsService: HospitalsService) {}
 
-    @Post()
-    create(@Body() dto: CreateHospitalDto) {
-        return this.hospitalsService.create(dto);
-    }
+  // Minimal public-within-the-platform directory (name/address only, not
+  // subscription/modules data) - this is what a patient's "choose a
+  // hospital" screen reads from before booking. Method-level @Roles
+  // overrides the class default below since there wasn't previously any
+  // non-admin read access to hospitals at all.
+  @Get('directory')
+  @Roles(...ALL_ROLES)
+  directory() {
+    return this.hospitalsService.findDirectory();
+  }
 
-    @Get()
-    findAll(){
-        return this.hospitalsService.findAll();
-    }
+  @Post()
+  @Roles(Role.SUPER_ADMIN)
+  create(@Body() dto: CreateHospitalDto) {
+    return this.hospitalsService.create(dto);
+  }
 
-    @Get(':id')
-    findOne(@Param('id') id: string){
-        return this.hospitalsService.findById(id);
-    }
+  @Get()
+  @Roles(Role.SUPER_ADMIN)
+  findAll() {
+    return this.hospitalsService.findAll();
+  }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() dto: UpdateHospitalDto){
-        return this.hospitalsService.update(id, dto);
-    }
+  @Get(':id')
+  @Roles(Role.SUPER_ADMIN)
+  findOne(@Param('id') id: string) {
+    return this.hospitalsService.findById(id);
+  }
+
+  @Patch(':id')
+  @Roles(Role.SUPER_ADMIN)
+  update(@Param('id') id: string, @Body() dto: UpdateHospitalDto) {
+    return this.hospitalsService.update(id, dto);
+  }
 }

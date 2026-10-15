@@ -1,4 +1,8 @@
-import { BadRequestException,Injectable, UnauthorizedException } from '@nestjs/common';
+import { 
+    BadRequestException,
+    Injectable, 
+    UnauthorizedException ,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +29,7 @@ export class AuthService {
         private readonly configService: ConfigService,
         @InjectModel(Otp.name) private otpModel: Model<OtpDocument>,
         @InjectModel(RefreshToken.name) private refreshTokenModel: Model<RefreshTokenDocument>,
+        private readonly notificationsService: NotificationsService,
     ){}
 
     // ---------- Patient self-registration ----------
@@ -67,9 +73,19 @@ export class AuthService {
             expiresAt: new Date(Date.now()  + expiryMinutes * 60 * 1000),
         });
 
-        // TODO (Phase - Notification module): send via Twilio/SendGrid.
-        // Logged here for local/dev use only - never log OTPs in production.
+        // Real delivery via the (currently mock) SMS/Email providers. No User
+        // record necessarily exists yet at this point (first-time OTP login),
+        // so this uses the pre-account sendDirect() path rather than
+        // NotificationsService.send(), which requires a userId.
+        const isEmail = dto.identifier.includes('@');
+        await this.notificationsService.sendDirect(
+            isEmail ? 'email' : 'sms',
+            dto.identifier,
+            `Your verification code is ${code}. It expires in ${expiryMinutes} minutes.`,
+        );
+
         if(this.configService.get('NODE_ENV') !== 'production'){
+            // eslint-disable-next-line no-console
             console.log(`[DEV ONLY] OTP for ${dto.identifier}: ${code}`);
         }
 

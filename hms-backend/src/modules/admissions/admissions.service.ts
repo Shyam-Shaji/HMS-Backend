@@ -6,7 +6,8 @@ import { AdmissionVitalsLog, AdmissionVitalsLogDocument } from './schemas/admiss
 import { AdmissionRoundNote, AdmissionRoundNoteDocument } from './schemas/admission-round-note.schema';
 import { 
     AdmissionMedicationOrder, 
-    AdmissionMedicationOrderDocument } from './schemas/admission-medication-order.schema';
+    AdmissionMedicationOrderDocument,
+} from './schemas/admission-medication-order.schema';
 import { Bed, BedDocument, BedStatus } from '../wards/schemas/bed.schema';
 import { Patient, PatientDocument } from '../patients/schemas/patient.schema';
 import { CreateAdmissionDto } from './dto/create-admission.dto';
@@ -17,6 +18,8 @@ import { AddRoundNoteDto } from './dto/add-round-note.dto';
 import { CreateMedicationOrderDto } from './dto/create-medication-order.dto';
 import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { SearchAdmissionDto } from './dto/search-admission.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 
 @Injectable()
 export class AdmissionsService {
@@ -28,6 +31,7 @@ export class AdmissionsService {
         @InjectModel(AdmissionRoundNote.name) private roundNoteModel: Model<AdmissionRoundNoteDocument>,
         @InjectModel(AdmissionMedicationOrder.name)
         private medicationOrderModel: Model<AdmissionMedicationOrderDocument>,
+        private readonly notificationsService: NotificationsService,
     ){}
 
     // ---------- Admit ----------
@@ -77,6 +81,7 @@ export class AdmissionsService {
     if (query.status) filter.status = query.status;
     if (query.wardId) filter.wardId = query.wardId;
     if (query.patientId) filter.patientId = query.patientId;
+    if (query.admittingDoctorId) filter.admittingDoctorId = query.admittingDoctorId;
 
     const [items, total] = await Promise.all([
       this.admissionModel
@@ -174,6 +179,22 @@ export class AdmissionsService {
     await admission.save();
 
     await this.bedModel.findByIdAndUpdate(admission.bedId, { status: BedStatus.CLEANING });
+
+    if (admission.patientUserId) {
+      this.notificationsService
+        .send({
+          userId: admission.patientUserId.toString(),
+          type: NotificationType.DISCHARGE_SUMMARY,
+          title: 'Discharge summary ready',
+          message: dto.followUpInstructions
+            ? `You have been discharged. Follow-up: ${dto.followUpInstructions}`
+            : 'You have been discharged. Your discharge summary is now available.',
+          relatedEntityType: 'admission',
+          relatedEntityId: (admission._id as any).toString(),
+        })
+        .catch(() => undefined);
+    }
+    
     return admission;
   }
 

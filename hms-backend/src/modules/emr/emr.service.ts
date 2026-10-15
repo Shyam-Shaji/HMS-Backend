@@ -40,7 +40,9 @@ export class EmrService {
 
     private assertEditable(record: MedicalRecordDocument){
         if(record.status === MedicalRecordStatus.FINALIZED){
-            throw new BadRequestException('This record is finalized and cannot be edited. Corrections required a new addendum entry.');
+            throw new BadRequestException(
+              'This record is finalized and cannot be edited. Corrections required a new addendum entry.',
+            );
         }
     }
 
@@ -132,11 +134,13 @@ export class EmrService {
     }
 
     async findMyRecordByAppointment(userId: string, appointmentId: string): Promise<MedicalRecordDocument> {
-    const record = await this.recordModel.findOne({
+    const record = await this.recordModel
+    .findOne({
       appointmentId,
       patientUserId: userId,
       status: MedicalRecordStatus.FINALIZED,
-    });
+    })
+    .populate('doctorId', 'name department');
     if (!record) throw new NotFoundException('Record not found');
     return record;
   }  

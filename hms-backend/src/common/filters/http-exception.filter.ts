@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { 
+  ArgumentsHost, 
+  Catch, 
+  ExceptionFilter, 
+  HttpException, 
+  HttpStatus, 
+  Logger ,
+} from "@nestjs/common";
 import { Request, Response } from "express";
 
 // Every error response, whether from a Nest HttpException, a Mongoose

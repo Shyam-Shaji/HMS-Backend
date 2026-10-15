@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { Otp, OtpSchema } from '../otp/schemas/otp.schema';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema
         signOptions: { expiresIn: config.get('JWT_ACCESS_EXPIRES_IN') as any },
       }),
     }),
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

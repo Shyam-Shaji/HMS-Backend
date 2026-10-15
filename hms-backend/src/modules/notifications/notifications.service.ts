@@ -7,11 +7,11 @@ import {
     NotificationType,
     NotificationChannel,
     ChannelDeliveryStatus,
- } from './schemas/notification.schema';
+} from './schemas/notification.schema';
 import { 
     NotificationPreference,
     NotificationPreferenceDocument,
- } from './schemas/notification-preference.schema';
+} from './schemas/notification-preference.schema';
 import { User, UserDocument } from '../user/schemas/user.schema';
 import { Role } from '../../common/enums/role.enums';
 import { SmsProviderService } from './providers/sms-provider.service';

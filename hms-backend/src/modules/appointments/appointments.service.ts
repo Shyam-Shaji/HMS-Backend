@@ -18,6 +18,8 @@ import { DoctorsService } from '../doctors/doctors.service';
 import { AppointmentsGateway } from './appointments.gateway';
 import { combineDateAndTime, startOfDay } from '../../common/utils/date.util';
 import { getCurrentHospitalId } from '../../common/context/tenant-context';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 
 const ACTIVE_STATUSES = [
   AppointmentStatus.BOOKED,
@@ -33,11 +35,12 @@ export class AppointmentsService {
     private readonly counterService: CounterService,
     private readonly doctorsService: DoctorsService,
     private readonly gateway: AppointmentsGateway,
+    private readonly notificationsService: NotificationsService,
   ){}
 
   // ---------- Booking ----------
 
-  async book(dto: CreateAppointmentDto, bookedByUserId: string): Promise<AppointmentDocument> {
+  async book(dto: CreateAppointmentDto, bookedByUserId: string): Promise<AppointmentDocument>{
     const hospitalId = getCurrentHospitalId();
     if(!hospitalId) throw new BadRequestException('Hospital context is required to book an appointment');
 
@@ -51,31 +54,48 @@ export class AppointmentsService {
 
     const tokenNumber = await this.counterService.next(`token:${hospitalId}:${dto.doctorId}:${dto.date}`);
 
-    try{
-      return await this.appointmentModel.create({
-        patientId: patient._id,
-        patientUserId: patient.userId ?? null,
-        doctorId: dto.doctorId,
-        scheduledDate: startOfDay(dto.date),
-        scheduledTime: dto.time,
-        scheduledAt: combineDateAndTime(dto.date, dto.time),
-        tokenNumber,
-        type: dto.type,
-        reason: dto.reason,
-        bookedBy: bookedByUserId,
-      });
-    } catch(err: any){
+    let appointment: AppointmentDocument;
+
+    try {
+      appointment = await this.appointmentModel.create({
+      patientId: patient._id,
+      patientUserId: patient.userId ?? null,
+      doctorId: dto.doctorId,
+      scheduledDate: startOfDay(dto.date),
+      scheduledTime: dto.time,
+      scheduledAt: combineDateAndTime(dto.date, dto.time),
+      tokenNumber,
+      type: dto.type,
+      reason: dto.reason,
+      bookedBy: bookedByUserId,
+    });
+    } catch (err: any) {
       // Race condition: two requests passed the availability check for the
       // same slot before either committed. The partial unique index on
-      // the schema is the real guard; this just turns the raw Mongo
-      // duplicate-key error into a clean, expected API response.
-      if(err?.code === 11000){
-        throw new ConflictException('This slot was just booked. Please pick another time.');
-      }
+      // the schema is the real guard; this turns the raw Mongo
+      // duplicate-key error into a clean API response.
+      if(err?.code === 11000) throw new ConflictException('This slot was just booked. Please pick another time');
+
       throw err;
-    } finally {
-      await this.pushQueueUpdate(hospitalId, dto.doctorId, dto.date);
     }
+    // Best-effort - a notification failure shouldn't fail the booking.
+    // Only fires if this patient has a portal account.
+    if(patient.userId){
+      this.notificationsService
+      .send({
+        userId: patient.userId.toString(),
+        type: NotificationType.APPOINTMENT_CONFIRMATION,
+        title: 'Appointment confirmed',
+        message: `Your appointment is confirmed for ${dto.date} at ${dto.time}. Token #${tokenNumber}.`,
+        relatedEntityType: 'appointment',
+        relatedEntityId: appointment._id.toString(),
+      })
+      .catch(() => undefined);
+    }
+    // Best-effort queue push; don't let it fail a successful booking.
+    await this.pushQueueUpdate(hospitalId, dto.doctorId, dto.date).catch(() => undefined);
+
+    return appointment;
   }
 
   // ---------- Reads ----------
@@ -244,4 +264,3 @@ export class AppointmentsService {
     this.gateway.broadcastQueueUpdate(hospitalId, doctorId, dateStr, queue);
   }
 }
-

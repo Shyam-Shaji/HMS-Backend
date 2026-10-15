@@ -39,7 +39,7 @@ export class DoctorsController {
         @Param('doctorId') doctorId: string,
         @Body() dto: SetAvailabilityDto,
         @CurrentUser() user: AuthenticatedUser,
-  ) {
+    ) {
     assertSelfOrAdmin(user, doctorId);
     return this.doctorsService.setAvailability(doctorId, dto);
   }

@@ -15,6 +15,7 @@ import {
 import { Appointment, AppointmentDocument, AppointmentStatus } from '../appointments/schemas/appointment.schema';
 import { User, UserDocument } from '../user/schemas/user.schema';
 import { Role } from 'src/common/enums/role.enums';
+import { containsInsensitive } from 'src/common/utils/regex.util';
 
 export interface SlotResult {
     time: string;
@@ -41,11 +42,11 @@ export class DoctorsService {
     // doctor at all. hospitalId is required explicitly (not read from
     // context) because a patient's own JWT carries hospitalId: null - they
     // browse across hospitals, not within one fixed tenant.
-    listDirectory(query: DoctorDirectoryQuery){
-        const filter:any = {hospitalId: query.hospitalId, role: Role.DOCTOR, isActive: true};
-        if(query.department) filter.department = new RegExp(query.department, 'i');
-        if(query.q) filter.name = new RegExp(query.q, 'i');
-        return this.userModel.find(filter).select('name department');
+    listDirectory(query: DoctorDirectoryQuery) {
+    const filter: any = { hospitalId: query.hospitalId, role: Role.DOCTOR, isActive: true };
+    if (query.department) filter.department = containsInsensitive(query.department);
+    if (query.q) filter.name = containsInsensitive(query.q);
+    return this.userModel.find(filter).select('name department');
     }
     
     async setAvailability(doctorId: string, dto: SetAvailabilityDto){

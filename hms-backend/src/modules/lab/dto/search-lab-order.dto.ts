@@ -6,6 +6,7 @@ export class SearchLabOrderDto {
   @IsOptional() @IsEnum(LabOrderStatus) status?: LabOrderStatus;
   @IsOptional() @IsEnum(LabOrderPriority) priority?: LabOrderPriority;
   @IsOptional() @IsMongoId() patientId?: string;
+  @IsOptional() @IsMongoId() orderedBy?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) limit?: number = 20;
 }

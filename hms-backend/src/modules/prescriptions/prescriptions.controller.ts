@@ -18,52 +18,53 @@ const PRESCRIPTION_READ_ROLES = [Role.DOCTOR, Role.NURSE, Role.PHARMACIST, Role.
 @UseGuards(RolesGuard)
 @Controller()
 export class PrescriptionsController {
-    constructor(private readonly prescriptionsService: PrescriptionsService){}
+  constructor(private readonly prescriptionsService: PrescriptionsService) {}
 
-    // ---- Patient self-service ----
-    @Get('prescriptions/me')
-    @Roles(Role.PATIENT)
-    findMyPrescriptions(@CurrentUser() user: AuthenticatedUser) {
-        return this.prescriptionsService.findMyPrescriptions(user.userId);
-    }
+  // ---- Patient self-service ----
 
-    @Get('prescriptions/me/:id')
-    @Roles(Role.PATIENT)
-    findMyPrescriptionById(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
-        return this.prescriptionsService.findMyPrescriptionById(user.userId, id);
-    }
+  @Get('prescriptions/me')
+  @Roles(Role.PATIENT)
+  findMyPrescriptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.prescriptionsService.findMyPrescriptions(user.userId);
+  }
 
-    // ---- Doctor: create against a specific visit ----
+  @Get('prescriptions/me/:id')
+  @Roles(Role.PATIENT)
+  findMyPrescriptionById(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.prescriptionsService.findMyPrescriptionById(user.userId, id);
+  }
 
-    @Post('emr/visits/:appointmentId/prescriptions')
-    @Roles(Role.DOCTOR)
-    create(@Param('appointmentId') appointmentId: string, @Body() dto: CreatePrescriptionDto) {
-        return this.prescriptionsService.create(appointmentId, dto);
-    }
+  // ---- Doctor: create against a specific visit ----
 
-    @Get('emr/visits/:appointmentId/prescriptions')
-    @Roles(...PRESCRIPTION_READ_ROLES)
-    findByAppointment(@Param('appointmentId') appointmentId: string) {
-        return this.prescriptionsService.findByAppointment(appointmentId);
-    }
+  @Post('emr/visits/:appointmentId/prescriptions')
+  @Roles(Role.DOCTOR)
+  create(@Param('appointmentId') appointmentId: string, @Body() dto: CreatePrescriptionDto) {
+    return this.prescriptionsService.create(appointmentId, dto);
+  }
 
-    // ---- Staff: direct lookup / patient-wide view (e.g. pharmacy queue) ----
+  @Get('emr/visits/:appointmentId/prescriptions')
+  @Roles(...PRESCRIPTION_READ_ROLES)
+  findByAppointment(@Param('appointmentId') appointmentId: string) {
+    return this.prescriptionsService.findByAppointment(appointmentId);
+  }
 
-    @Get('prescriptions/:id')
-    @Roles(...PRESCRIPTION_READ_ROLES)
-    findOne(@Param('id') id: string) {
-        return this.prescriptionsService.findById(id);
-    }
+  // ---- Staff: direct lookup / patient-wide view (e.g. pharmacy queue) ----
 
-    @Get('patients/:patientId/prescriptions')
-    @Roles(...PRESCRIPTION_READ_ROLES)
-    findForPatient(@Param('patientId') patientId: string) {
-        return this.prescriptionsService.findForPatient(patientId);
-    }
+  @Get('prescriptions/:id')
+  @Roles(...PRESCRIPTION_READ_ROLES)
+  findOne(@Param('id') id: string) {
+    return this.prescriptionsService.findById(id);
+  }
 
-    @Patch('prescriptions/:id/cancel')
-    @Roles(Role.DOCTOR)
-    cancel(@Param('id') id: string, @Body() dto: CancelPrescriptionDto) {
-        return this.prescriptionsService.cancel(id, dto);
-    }
+  @Get('patients/:patientId/prescriptions')
+  @Roles(...PRESCRIPTION_READ_ROLES)
+  findForPatient(@Param('patientId') patientId: string) {
+    return this.prescriptionsService.findForPatient(patientId);
+  }
+
+  @Patch('prescriptions/:id/cancel')
+  @Roles(Role.DOCTOR)
+  cancel(@Param('id') id: string, @Body() dto: CancelPrescriptionDto) {
+    return this.prescriptionsService.cancel(id, dto);
+  }
 }

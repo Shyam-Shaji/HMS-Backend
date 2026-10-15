@@ -23,6 +23,8 @@ import { Prescription, PrescriptionDocument } from '../prescriptions/schemas/pre
 import { DispenseRecord, DispenseRecordDocument } from '../pharmacy/schemas/dispense-record.schema';
 import { Ward, WardDocument } from '../wards/schemas/ward.schema';
 import { getCurrentHospitalId } from '../../common/context/tenant-context';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 
 @Injectable()
 export class BillingService {
@@ -38,6 +40,7 @@ export class BillingService {
     private readonly appointmentsService: AppointmentsService,
     private readonly admissionsService: AdmissionsService,
     private readonly labService: LabService,
+    private readonly notificationsService: NotificationsService, 
   ) {}
 
   // ---------- Helpers ----------
@@ -294,10 +297,28 @@ export class BillingService {
   async issue(id: string): Promise<InvoiceDocument> {
     const invoice = await this.invoiceModel.findById(id);
     if (!invoice) throw new NotFoundException('Invoice not found');
+
     this.assertDraft(invoice);
     invoice.status = InvoiceStatus.ISSUED;
     invoice.issuedAt = new Date();
-    return invoice.save();
+
+    const saved = await invoice.save();
+
+    const patientUserId = saved.patientUserId?.toString();
+    if(saved.patientId && patientUserId){
+      this.notificationsService
+      .send({
+        userId: patientUserId,
+        type: NotificationType.BILL_GENERATED,
+        title: 'New bill generated',
+        message: `Invoice ${invoice?.invoiceNumber} for ${invoice?.totalAmount} is ready. Balance due: ${invoice?.balanceDue}.`,
+        relatedEntityType: 'invoice',
+        relatedEntityId: (invoice?._id as any).toString(),
+      })
+      .catch(() => undefined);
+    }
+
+    return saved;
   }
 
   async cancel(id: string): Promise<InvoiceDocument> {

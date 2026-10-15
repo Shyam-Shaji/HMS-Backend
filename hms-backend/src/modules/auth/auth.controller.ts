@@ -1,7 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -56,6 +55,5 @@ export class AuthController {
     @Post('logout')
     logout(@CurrentUser() user: AuthenticatedUser){
         return this.authService.logout(user.userId);
-    }
-    
+    }  
 }

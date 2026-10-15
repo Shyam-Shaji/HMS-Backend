@@ -19,6 +19,16 @@ export class HospitalsService {
         return this.hospitalModel.find();
     }
 
+    // Minimal fields only (no subscriptionPlan/modulesEnabled) - this is
+    // read by any authenticated role, including patients choosing where to
+    // book, so it deliberately excludes the admin-only fields findAll()/
+    // findById() expose.
+    findDirectory(){
+        return this.hospitalModel
+        .find({isActive: true})
+        .select('name address branches contactPhone');
+    }
+
     async findById(id: string){
         const hospital = await this.hospitalModel.findById(id);
         if(!hospital) throw new NotFoundException('Hospital not found');

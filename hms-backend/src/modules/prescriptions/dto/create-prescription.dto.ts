@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsOptional, IsString, ValidateNested, IsNumber, Min } from 'class-validator';
 
 class PrescribedMedicineDto {
   @IsString() name: string;
@@ -7,6 +7,11 @@ class PrescribedMedicineDto {
   @IsString() frequency: string;
   @IsString() duration: string;
   @IsOptional() @IsString() instructions?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  quantity?: number;
 }
 
 export class CreatePrescriptionDto {

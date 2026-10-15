@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { TestCatalog, TestCatalogDocument } from './schemas/test-catalog.schema';
 import { LabOrder, LabOrderDocument, LabOrderStatus } from './schemas/lab-order.schema';
 import { Patient, PatientDocument } from '../patients/schemas/patient.schema';
@@ -15,26 +15,30 @@ import { SearchLabOrderDto } from './dto/search-lab-order.dto';
 import { AppointmentsService } from '../appointments/appointments.service';
 import { AdmissionsService } from '../admissions/admissions.service';
 import { getCurrentHospitalId } from '../../common/context/tenant-context';
+import { containsInsensitive } from '../../common/utils/regex.util';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/schemas/notification.schema';
 
 @Injectable()
 export class LabService {
-    constructor(
-        @InjectModel(TestCatalog.name) private testCatalogModel: Model<TestCatalogDocument>,
-        @InjectModel(LabOrder.name) private labOrderModel: Model<LabOrderDocument>,
-        @InjectModel(Patient.name) private patientModel: Model<PatientDocument>,
-        private readonly appointmentsService: AppointmentsService,
-        private readonly admissionsService: AdmissionsService,
-    ){}
+  constructor(
+    @InjectModel(TestCatalog.name) private testCatalogModel: Model<TestCatalogDocument>,
+    @InjectModel(LabOrder.name) private labOrderModel: Model<LabOrderDocument>,
+    @InjectModel(Patient.name) private patientModel: Model<PatientDocument>,
+    private readonly appointmentsService: AppointmentsService,
+    private readonly admissionsService: AdmissionsService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
-    // ---------- Test catalogue ----------
+  // ---------- Test catalogue ----------
 
-    createTest(dto: CreateTestCatalogDto) {
+  createTest(dto: CreateTestCatalogDto) {
     return this.testCatalogModel.create(dto);
   }
 
   async searchTests(query: SearchTestCatalogDto) {
     const filter: any = { isActive: true };
-    if (query.q) filter.name = new RegExp(query.q, 'i');
+    if (query.q) filter.name = containsInsensitive(query.q);
     return this.testCatalogModel.find(filter).sort({ name: 1 });
   }
 
@@ -84,6 +88,7 @@ export class LabService {
       orderedBy: doctorId,
       testId: test._id,
       testNameSnapshot: test.name,
+      priceSnapshot: test.price,
       priority: dto.priority,
       clinicalNotes: dto.clinicalNotes,
     });
@@ -105,7 +110,11 @@ export class LabService {
     const filter: any = {};
     if (query.status) filter.status = query.status;
     if (query.priority) filter.priority = query.priority;
-    if (query.patientId) filter.patientId = query.patientId;
+    // .aggregate() does NOT cast strings to ObjectIds the way .find() does,
+    // so every id in this $match must be converted by hand - a plain
+    // string would silently match nothing.
+    if (query.patientId) filter.patientId = new Types.ObjectId(query.patientId);
+    if (query.orderedBy) filter.orderedBy = new Types.ObjectId(query.orderedBy);
 
     // IMPORTANT: applyTenantPlugin's auto-scoping works via Mongoose query
     // middleware (pre('find'), etc.), which .aggregate() does NOT go
@@ -113,7 +122,7 @@ export class LabService {
     // sorting, below), the hospital filter has to be added explicitly here
     // or a hospital admin's queue could leak another hospital's orders.
     const hospitalId = getCurrentHospitalId();
-    if (hospitalId) filter.hospitalId = hospitalId;
+    if (hospitalId) filter.hospitalId = new Types.ObjectId(hospitalId);
 
     // STAT orders first, then urgent, then routine; oldest first within
     // each priority tier - this is the lab tech's actual work queue order.
@@ -176,11 +185,13 @@ export class LabService {
   }
 
   async findMyOrderById(userId: string, id: string): Promise<LabOrderDocument> {
-    const order = await this.labOrderModel.findOne({
-      _id: id,
-      patientUserId: userId,
-      status: LabOrderStatus.COMPLETED,
-    });
+    const order = await this.labOrderModel
+      .findOne({
+        _id: id,
+        patientUserId: userId,
+        status: LabOrderStatus.COMPLETED,
+      })
+      .populate('orderedBy', 'name department');
     if (!order) throw new NotFoundException('Report not found');
     return order;
   }
@@ -233,8 +244,8 @@ export class LabService {
   }
 
   // Finalizes and locks the result - the same immutability contract as
-  // EMR.finalize(). TODO (Notifications module): fire "report ready"
-  // SMS/email/push to both the ordering doctor and the patient here.
+  // EMR.finalize(). Notifies both the ordering doctor and the patient
+  // (if they have a portal account) that the report is ready.
   async verify(id: string, verifiedBy: string): Promise<LabOrderDocument> {
     const order = await this.getActiveOrThrow(id);
     if (order.resultParameters.length === 0 && !order.reportFileUrl) {
@@ -243,7 +254,25 @@ export class LabService {
     order.status = LabOrderStatus.COMPLETED;
     order.verifiedBy = verifiedBy as any;
     order.verifiedAt = new Date();
-    return order.save();
+    await order.save();
+
+    const recipients = [order.orderedBy.toString(), order.patientUserId?.toString()].filter(
+      (id): id is string => Boolean(id),
+    );
+    for (const userId of recipients) {
+      this.notificationsService
+        .send({
+          userId,
+          type: NotificationType.LAB_REPORT_READY,
+          title: 'Lab report ready',
+          message: `The result for "${order.testNameSnapshot}" is now available.`,
+          relatedEntityType: 'lab_order',
+          relatedEntityId: (order._id as any).toString(),
+        })
+        .catch(() => undefined);
+    }
+
+    return order;
   }
 
   async cancel(id: string, dto: CancelLabOrderDto): Promise<LabOrderDocument> {

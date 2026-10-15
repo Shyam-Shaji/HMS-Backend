@@ -8,6 +8,7 @@ import { DispenseRecord, DispenseRecordSchema } from './schemas/dispense-record.
 import { Prescription, PrescriptionSchema } from '../prescriptions/schemas/prescription.schema';
 import { PharmacyController } from './pharmacy.controller';
 import { PharmacyService } from './pharmacy.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PharmacyService } from './pharmacy.service';
       { name: DispenseRecord.name, schema: DispenseRecordSchema },
       { name: Prescription.name, schema: PrescriptionSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [PharmacyController],
   providers: [PharmacyService],

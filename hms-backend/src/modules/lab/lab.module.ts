@@ -7,6 +7,7 @@ import { LabController } from './lab.controller';
 import { LabService } from './lab.service';
 import { AppointmentsModule } from '../appointments/appointments.module';
 import { AdmissionsModule } from '../admissions/admissions.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AdmissionsModule } from '../admissions/admissions.module';
     ]),
     AppointmentsModule,
     AdmissionsModule,
+    NotificationsModule,
   ],
   controllers: [LabController],
   providers: [LabService],

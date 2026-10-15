@@ -6,6 +6,7 @@ export class SearchAdmissionDto {
   @IsOptional() @IsEnum(AdmissionStatus) status?: AdmissionStatus;
   @IsOptional() @IsMongoId() wardId?: string;
   @IsOptional() @IsMongoId() patientId?: string;
+  @IsOptional() @IsMongoId() admittingDoctorId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) limit?: number = 20;
 }

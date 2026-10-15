@@ -19,67 +19,69 @@ const CLINICAL_READ_ROLES = [Role.DOCTOR, Role.NURSE, Role.HOSPITAL_ADMIN];
 @UseGuards(RolesGuard)
 @Controller('emr')
 export class EmrController {
-    constructor(private readonly emrService: EmrService){}
+  constructor(private readonly emrService: EmrService) {}
 
-    // ---- Patient self-service ----
-    @Get('me/history')
-    @Roles(Role.PATIENT)
-    findMyHistory(@CurrentUser() user: AuthenticatedUser) {
-        return this.emrService.findMyHistory(user.userId);
-    }
+  // ---- Patient self-service ----
 
-    @Get('me/visits/:appointmentId')
-    @Roles(Role.PATIENT)
-    findMyRecord(@Param('appointmentId') appointmentId: string, @CurrentUser() user: AuthenticatedUser) {
-        return this.emrService.findMyRecordByAppointment(user.userId, appointmentId);
-    }
+  @Get('me/history')
+  @Roles(Role.PATIENT)
+  findMyHistory(@CurrentUser() user: AuthenticatedUser) {
+    return this.emrService.findMyHistory(user.userId);
+  }
 
-    // ---- Nurse: vitals only ----
+  @Get('me/visits/:appointmentId')
+  @Roles(Role.PATIENT)
+  findMyRecord(@Param('appointmentId') appointmentId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.emrService.findMyRecordByAppointment(user.userId, appointmentId);
+  }
 
-    @Patch('visits/:appointmentId/vitals')
-    @Roles(Role.NURSE, Role.DOCTOR)
-    updateVitals(
-        @Param('appointmentId') appointmentId: string,
-        @Body() dto: UpdateVitalsDto,
-        @CurrentUser() user: AuthenticatedUser,
-    ) {
-        return this.emrService.updateVitals(appointmentId, dto, user.userId);
-    }
+  // ---- Nurse: vitals only ----
 
-    // ---- Doctor: clinical documentation ----
+  @Patch('visits/:appointmentId/vitals')
+  @Roles(Role.NURSE, Role.DOCTOR)
+  updateVitals(
+    @Param('appointmentId') appointmentId: string,
+    @Body() dto: UpdateVitalsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.emrService.updateVitals(appointmentId, dto, user.userId);
+  }
 
-    @Patch('visits/:appointmentId')
-    @Roles(Role.DOCTOR)
-    updateClinical(@Param('appointmentId') appointmentId: string, @Body() dto: UpdateClinicalDto) {
-        return this.emrService.updateClinical(appointmentId, dto);
-    }
+  // ---- Doctor: clinical documentation ----
 
-    @Patch('visits/:appointmentId/finalize')
-    @Roles(Role.DOCTOR)
-    finalize(@Param('appointmentId') appointmentId: string) {
-        return this.emrService.finalize(appointmentId);
-    }
+  @Patch('visits/:appointmentId')
+  @Roles(Role.DOCTOR)
+  updateClinical(@Param('appointmentId') appointmentId: string, @Body() dto: UpdateClinicalDto) {
+    return this.emrService.updateClinical(appointmentId, dto);
+  }
 
-    @Get('visits/:appointmentId')
-    @Roles(...CLINICAL_READ_ROLES)
-    findByAppointment(@Param('appointmentId') appointmentId: string) {
-        return this.emrService.findByAppointment(appointmentId);
-    }
+  @Patch('visits/:appointmentId/finalize')
+  @Roles(Role.DOCTOR)
+  finalize(@Param('appointmentId') appointmentId: string) {
+    return this.emrService.finalize(appointmentId);
+  }
 
-    // ---- Patient history / consultation summary (staff) ----
-    @Get('patients/:patientId/history')
-    @Roles(...CLINICAL_READ_ROLES)
-    getPatientHistory(
-        @Param('patientId') patientId: string,
-        @Query('page') page?: string,
-        @Query('limit') limit?: string,
+  @Get('visits/:appointmentId')
+  @Roles(...CLINICAL_READ_ROLES)
+  findByAppointment(@Param('appointmentId') appointmentId: string) {
+    return this.emrService.findByAppointment(appointmentId);
+  }
+
+  // ---- Patient history / consultation summary (staff) ----
+
+  @Get('patients/:patientId/history')
+  @Roles(...CLINICAL_READ_ROLES)
+  getPatientHistory(
+    @Param('patientId') patientId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     return this.emrService.getPatientHistory(patientId, Number(page) || 1, Number(limit) || 20);
   }
 
-    @Get('patients/:patientId/summary')
-    @Roles(...CLINICAL_READ_ROLES)
-    getPatientSummary(@Param('patientId') patientId: string) {
-        return this.emrService.getPatientSummary(patientId);
-    } 
+  @Get('patients/:patientId/summary')
+  @Roles(...CLINICAL_READ_ROLES)
+  getPatientSummary(@Param('patientId') patientId: string) {
+    return this.emrService.getPatientSummary(patientId);
+  }
 }

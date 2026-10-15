@@ -1,12 +1,13 @@
 import { Type } from "class-transformer";
-import { IsArray,
-    IsDateString,
-    IsEmail,
-    IsEnum,
-    IsMongoId,
-    IsOptional,
-    IsString,
-    ValidateNested,
+import { 
+   IsArray,
+   IsDateString,
+   IsEmail,
+   IsEnum,
+   IsMongoId,
+   IsOptional,
+   IsString,
+   ValidateNested,
  } from "class-validator";
  import { BloodGroup, Gender } from "../schemas/patient.schema";
 

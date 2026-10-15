@@ -3,12 +3,16 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Admission, AdmissionSchema } from './schemas/admission.schema';
 import { AdmissionVitalsLog, AdmissionVitalsLogSchema } from './schemas/admission-vitals-log.schema';
 import { AdmissionRoundNote, AdmissionRoundNoteSchema } from './schemas/admission-round-note.schema';
-import { AdmissionMedicationOrder, AdmissionMedicationOrderSchema } from './schemas/admission-medication-order.schema';
+import { 
+  AdmissionMedicationOrder, 
+  AdmissionMedicationOrderSchema 
+} from './schemas/admission-medication-order.schema';
 import { Bed, BedSchema } from '../wards/schemas/bed.schema';
 import { Patient, PatientSchema } from '../patients/schemas/patient.schema';
 import { AdmissionsController } from './admissions.controller';
 import { AdmissionsService } from './admissions.service';
 import { WardsModule } from '../wards/wards.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,6 +25,7 @@ import { WardsModule } from '../wards/wards.module';
       { name: Patient.name, schema: PatientSchema },
     ]),
     WardsModule,
+    NotificationsModule,
   ],
   controllers: [AdmissionsController],
   providers: [AdmissionsService],

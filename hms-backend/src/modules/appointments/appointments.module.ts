@@ -7,6 +7,7 @@ import { AppointmentsService } from './appointments.service';
 import { AppointmentsGateway } from './appointments.gateway';
 import { CounterModule } from '../../common/counter/counter.module';
 import { DoctorsModule } from '../doctors/doctors.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DoctorsModule } from '../doctors/doctors.module';
     // computation) rather than this whole module, so there's no circular
     // dependency here despite AppointmentsService depending on DoctorsService.
     DoctorsModule,
+    NotificationsModule,
   ],
   controllers: [AppointmentsController],
   providers: [AppointmentsService, AppointmentsGateway],

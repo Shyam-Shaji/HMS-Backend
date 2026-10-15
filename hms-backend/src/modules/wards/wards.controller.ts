@@ -73,4 +73,3 @@ export class WardsController {
     return this.wardsService.updateBedStatus(id, dto);
   }
 }
-

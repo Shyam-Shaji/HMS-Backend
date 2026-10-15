@@ -6,7 +6,6 @@ import { PrescriptionsController } from './prescriptions.controller';
 import { PrescriptionsService } from './prescriptions.service';
 import { AppointmentsModule } from '../appointments/appointments.module';
 
-
 @Module({
   imports: [
     MongooseModule.forFeature([
