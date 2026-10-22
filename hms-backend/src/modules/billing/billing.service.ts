@@ -297,28 +297,25 @@ export class BillingService {
   async issue(id: string): Promise<InvoiceDocument> {
     const invoice = await this.invoiceModel.findById(id);
     if (!invoice) throw new NotFoundException('Invoice not found');
-
     this.assertDraft(invoice);
     invoice.status = InvoiceStatus.ISSUED;
     invoice.issuedAt = new Date();
+    await invoice.save();
 
-    const saved = await invoice.save();
-
-    const patientUserId = saved.patientUserId?.toString();
-    if(saved.patientId && patientUserId){
+    if (invoice.patientUserId) {
       this.notificationsService
-      .send({
-        userId: patientUserId,
-        type: NotificationType.BILL_GENERATED,
-        title: 'New bill generated',
-        message: `Invoice ${invoice?.invoiceNumber} for ${invoice?.totalAmount} is ready. Balance due: ${invoice?.balanceDue}.`,
-        relatedEntityType: 'invoice',
-        relatedEntityId: (invoice?._id as any).toString(),
-      })
-      .catch(() => undefined);
+        .send({
+          userId: invoice.patientUserId.toString(),
+          type: NotificationType.BILL_GENERATED,
+          title: 'New bill generated',
+          message: `Invoice ${invoice.invoiceNumber} for ${invoice.totalAmount} is ready. Balance due: ${invoice.balanceDue}.`,
+          relatedEntityType: 'invoice',
+          relatedEntityId: (invoice._id as any).toString(),
+        })
+        .catch(() => undefined);
     }
 
-    return saved;
+    return invoice;
   }
 
   async cancel(id: string): Promise<InvoiceDocument> {

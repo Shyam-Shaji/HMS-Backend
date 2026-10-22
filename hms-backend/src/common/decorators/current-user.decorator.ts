@@ -7,6 +7,7 @@ export interface AuthenticatedUser{
     email?: string;
 }
 
+// Usage: findMe(@CurrentUser() user: AuthenticatedUser)
 export const CurrentUser = createParamDecorator(
     (data: keyof AuthenticatedUser | undefined, ctx: ExecutionContext) => {
         const request = ctx.switchToHttp().getRequest();
