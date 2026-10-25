@@ -25,4 +25,11 @@ export class CreateAdmissionDto {
   @IsOptional()
   @IsMongoId()
   appointmentId?: string;
+
+  // Who is responsible for this patient. Optional when a doctor admits
+  // (defaults to themselves); REQUIRED when a nurse admits, so the record
+  // never names a nurse as the admitting doctor.
+  @IsOptional()
+  @IsMongoId()
+  admittingDoctorId?: string;
 }

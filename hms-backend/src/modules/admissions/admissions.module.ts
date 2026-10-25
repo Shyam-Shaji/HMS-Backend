@@ -9,6 +9,7 @@ import {
 } from './schemas/admission-medication-order.schema';
 import { Bed, BedSchema } from '../wards/schemas/bed.schema';
 import { Patient, PatientSchema } from '../patients/schemas/patient.schema';
+import { User, UserSchema } from '../user/schemas/user.schema';
 import { AdmissionsController } from './admissions.controller';
 import { AdmissionsService } from './admissions.service';
 import { WardsModule } from '../wards/wards.module';
@@ -23,6 +24,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       { name: AdmissionMedicationOrder.name, schema: AdmissionMedicationOrderSchema },
       { name: Bed.name, schema: BedSchema },
       { name: Patient.name, schema: PatientSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     WardsModule,
     NotificationsModule,

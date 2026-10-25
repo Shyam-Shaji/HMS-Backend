@@ -10,6 +10,9 @@ import {
 } from './schemas/admission-medication-order.schema';
 import { Bed, BedDocument, BedStatus } from '../wards/schemas/bed.schema';
 import { Patient, PatientDocument } from '../patients/schemas/patient.schema';
+import { User, UserDocument } from '../user/schemas/user.schema';
+import { Role } from 'src/common/enums/role.enums';
+import { getCurrentHospitalId } from 'src/common/context/tenant-context';
 import { CreateAdmissionDto } from './dto/create-admission.dto';
 import { TransferAdmissionDto } from './dto/transfer-admission.dto';
 import { DischargeAdmissionDto } from './dto/discharge-admission.dto';
@@ -27,6 +30,7 @@ export class AdmissionsService {
         @InjectModel(Admission.name) private admissionModel: Model<AdmissionDocument>,
         @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
         @InjectModel(Patient.name) private patientModel: Model<PatientDocument>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
         @InjectModel(AdmissionVitalsLog.name) private vitalsLogModel: Model<AdmissionVitalsLogDocument>,
         @InjectModel(AdmissionRoundNote.name) private roundNoteModel: Model<AdmissionRoundNoteDocument>,
         @InjectModel(AdmissionMedicationOrder.name)
@@ -36,9 +40,23 @@ export class AdmissionsService {
 
     // ---------- Admit ----------
 
-    async admit(dto: CreateAdmissionDto, admittingDoctorId: string): Promise<AdmissionDocument> {
+    async admit(dto: CreateAdmissionDto, actorId: string, actorRole: string): Promise<AdmissionDocument> {
     const patient = await this.patientModel.findById(dto.patientId);
     if (!patient) throw new NotFoundException('Patient record not found');
+
+    // A doctor admitting defaults to themselves; anyone else (a nurse
+    // processing the admission) must name the responsible doctor.
+    const admittingDoctorId = dto.admittingDoctorId ?? (actorRole === Role.DOCTOR ? actorId : undefined);
+    if (!admittingDoctorId) {
+      throw new BadRequestException('An admitting doctor is required');
+    }
+    const doctor = await this.userModel.findOne({
+      _id: admittingDoctorId,
+      role: Role.DOCTOR,
+      isActive: true,
+      hospitalId: getCurrentHospitalId(),
+    });
+    if (!doctor) throw new BadRequestException('The admitting doctor must be an active doctor at this hospital');
 
     // Atomic check-and-set: only succeeds if the bed is currently VACANT.
     // This is the same "let the DB resolve the race" pattern used for
@@ -89,7 +107,7 @@ export class AdmissionsService {
         .sort({ admissionDate: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate('patientId', 'name uhid phone')
+        .populate('patientId', 'name uhid phone allergies')
         .populate('admittingDoctorId', 'name department')
         .populate('wardId', 'name type')
         .populate('bedId', 'bedNumber'),

@@ -37,7 +37,7 @@ export class AdmissionsController {
     @Post()
     @Roles(Role.DOCTOR, Role.NURSE, Role.HOSPITAL_ADMIN)
     admit(@Body() dto: CreateAdmissionDto, @CurrentUser() user: AuthenticatedUser) {
-        return this.admissionsService.admit(dto, user.userId);
+    return this.admissionsService.admit(dto, user.userId, user.role);
     }
 
     @Get()
